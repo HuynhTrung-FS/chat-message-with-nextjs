@@ -14,6 +14,7 @@ const ChatInput: FC<ChatInputProps> = ({ chatPartner, chatId }) => {
   const [input, setInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const sendMessage = async () => {
+    if (!input) return;
     setIsLoading(true);
     try {
       // post xuống server cùng với 2 dữ liệu là đoạn text message và chatId của người gửi

@@ -1,6 +1,8 @@
 import { fetchRedis } from "@/helpers/redis";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { pusherClient, pusherServer } from "@/lib/pusher";
+import { toPusherKey } from "@/lib/utils";
 import { getServerSession } from "next-auth";
 import { string, z } from "zod";
 
@@ -41,6 +43,23 @@ export async function POST(req: Request) {
     if (!hasFriendRequest) {
       return new Response("No friend request", { status: 400 });
     }
+
+    // notify added user
+
+    // sự kiện này dùng để khi đối phương accept thì đối phương sẽ hiện trên khung chat của chúng ta
+    // hàm trigger bao gồm hàm pusherKey, key là "new_friends" (key này dùng để đối chiếu với sự kiện chúng ta đã bind lúc trước)
+    // và cuối cùng là data chúng ta muốn pass qua (data này sẽ được thực hiện ở hàm handler bên phía bind của cái key trùng với key của bind)
+    // => ở đây vì handler bên phía bind ko cần data để xử lý nên chúng ta truyền vào một string rỗng {}.
+
+    // you could also do this with state right so it would be easy thing to just add the actual friend because you can get the data
+    // because we have the ID that we want to add so it would be easy to actually fetch the friend data from the database pass it along
+    // and then add that friend to State instead of refreshing (ex: newFriendHandler) the router.
+    //
+    pusherServer.trigger(
+      toPusherKey(`user:${idToAdd}:friends`),
+      "new_friend",
+      {}
+    );
 
     // tiến hành add person mình gõ vào list friends.
     // ở đây chúng ta ko cần phải fetch vì chúng ta thực hiện phương thức post hoặc chỉnh sửa data trong redis và nó sẽ ko cần cache trong nextjs

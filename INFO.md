@@ -65,6 +65,8 @@ Step 3: Type "fc" and hit TAB.
 
 # Promise.all giúp chúng ta thực hiện một array promise đồng thời.
 
+# Mục đích truyền props từ phía server page xuống client page là để trấnh việc chúng ta phải fetching all that data again ngay tại cái component bên phía server => hạn chế việc dư thừa bộ nhớ.
+
 # Một điều cần lưu ý khi thao tác với database lúc ban đầu: khi mà bạn đã log in với 1 account và cố gắng login một 1 account khác trong khi account ban đầu đã được log in vào web của chúng ta thì sẽ dẫn đến nó sẽ không nhận các account lúc sau.
 
 => LLý do: bởi vì user sẽ ko thể navigate to the login page anyways khi mà chúng đã đăng nhập (lý do là chúng ta đã protect account ban đầu với 1 cái middleware)
@@ -88,3 +90,47 @@ Step 3: Type "fc" and hit TAB.
 ::-webkit-resizer chỉnh sửa lại kích thước có thể kéo được xuất hiện phía trên thanh cuộn ở góc dưới cùng của một số phần tử.
 
 # lưu ý: sẽ có vài component mình sẽ sử dụng use client để get session hoặc mình có thể truyền session đó xuống các component khác (là một props) mà ko cần phải sử dụng use client cho component đó nếu như chúng ta đã fetch các session trong parent component.
+
+# pusher là một web socket channels (hỗ trợ việc realtime communication) (tham khảo: https://pusher.com/)
+
+- Cách cài đặt: tiến hành tạo một channel sau đấy thì lấy aappKey của nó kết nối với web của chúng ta.
+
+- pusher là một web socket channels mà nó có thể giúp bạn scalable siêu nhanh và họ đã tạo ra websocket connections (đặc biệt là trong serverless app như nextjs)
+- cài đặt 2 library: pusher (dành cho server side, distribution các message realtime) và pusher-js(dành cho client side, receiving end of these real-time).
+
+# Sơ đồ chat realtime với pusher:
+
+- from the client side (client chính là người đầu tiên), we can make a post request every time we send a message to the server containing the message content after that pushes message content to the database (ở đây là redis (data being persisted) - sử dụng zset)
+- Next, server will send this message to anyone who is subcribed this chat in realtime using web-sockets(nghĩa là server sẽ trả về cho tất cả mọi người mà bất cứ ai trong họ ở trong đoạn chat đó đều được nhận).
+- So before even persisting this in the database, it already sends that event out to the client và chat partner (người còn lại trong cuộc hội thoại, nếu là một group chat thì là những người còn lại), therefore we can see message in realtime.
+- To do all things upon, we need the server must trigger (chúng ta sẽ logic cái server trong file pusher.ts) then the client to subcribe to any changes and so it receives the notifications from the server..
+
+# Logic realtime của pusher:
+
+- Đầu tiên chúng ta sẽ tiến hành subscribe với pusherKey, tiếp đến chúng ta sẽ tiến hành binding với key và 1 function handler. Khi event useEffect được chạy, nhờ hàm bind chúng ta sẽ bắn tin hiệu xuống cho server, khi đó server sẽ nhận đc 2 key (1 key trong hàm pusher và 1 key trong hàm bind) khi đó server sẽ trigger lại trả về các biến cần thiết, và các biến đó sẽ được truyền vào event handler để xử lý các state ở bên front end.
+
+\*Ví dụ: phần useEffect trong Mesage.ts
+
+# Logic để code notifications friend request.
+
+- trước hết chúng ta cần phải làm process listening to that event on the client (trong file FriendRequests.tsx, phần useEffect đoạn 26)
+- Tiếp đến là chúng ta sẽ trigger that event on the server (file route.js trong folder api/friends/add, đoạn 72) , sẽ remove cái notification đó.
+
+# Thuận lợi REDIS:
+
+- Nó vô cùng nhanh khi chúng ta sử dụng realtime chat application.
+
+# trong folder có file loading.tsx dùng để xác định đó là một loading state (skeleton)
+
+# lưu ý: bất kể các div hoặc tag nào cần show ra value thì nếu các bạn muốn làm event loading state, chỉ cần bỏ skeleton trong cái div đó.
+
+# lưu ý: bạn cần phải dependencies for everything from outside and being used inside of the useEffect.
+
+(xem các file loading trong (dashboard)/dashboard)
+
+# Muốn deploy web này lên public thì cần phải check lỗi logic trước bằng cách gõ: npm next lint
+
+# nếu như ko có lỗi thì chúng ta có thể chạy: npm run build -> mục đích : có 2 mục đích
+
+- Thứ nhất là để produce ra giai đoạn production đoạn code của chúng ta -> chúng ta có thể đưa cho tester để họ kiểm tra lỗi.
+- Thứ hai là để deploy web lên vercel -> để cho mọi người có thể sử dụng web (nghĩa là web của chúng ta sẽ được public)

@@ -1,7 +1,9 @@
 "use client";
+import { pusherClient } from "@/lib/pusher";
+import { toPusherKey } from "@/lib/utils";
 import { User } from "lucide-react";
 import Link from "next/link";
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 
 interface FriendRequestSidebarOptionProps {
   sessionId: string;
@@ -15,6 +17,25 @@ const FriendRequestSidebarOption: FC<FriendRequestSidebarOptionProps> = ({
   const [unseenRequestCount, setUnseenRequestCount] = useState<number>(
     initialUnseenRequestCount
   );
+
+  useEffect(() => {
+    pusherClient.subscribe(
+      toPusherKey(`user:${sessionId}:incoming_friend_requests`)
+    );
+
+    const friendRequestHandler = () => {
+      setUnseenRequestCount((prev) => prev + 1);
+    };
+
+    pusherClient.bind("incoming_friend_requests", friendRequestHandler);
+
+    return () => {
+      pusherClient.unsubscribe(
+        toPusherKey(`user:${sessionId}:incoming_friend_requests`)
+      );
+      pusherClient.unbind("incoming_friend_requests", friendRequestHandler);
+    };
+  }, [sessionId]);
 
   // props group trong className dùng để group lại các children với nhau nếu chúng ta mún xử lý behavior cho các tag children
   return (

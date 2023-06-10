@@ -5,7 +5,7 @@ import { ButtonHTMLAttributes, FC } from "react";
 
 // buttonVariants sẽ là một anonymous function
 // cva sẽ nhận 2 biến (biến đầu tiên là classValue, biến thứ hai là object gồm 3 thuộc tính variants, defaultVariants)
-const buttonVariants = cva(
+export const buttonVariants = cva(
   "active:scale-95 inline-flex items-center justify-center just rounded-md text-sm font-medium transition-color focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none",
   {
     variants: {

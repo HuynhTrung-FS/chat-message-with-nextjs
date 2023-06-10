@@ -1,6 +1,8 @@
 import { fetchRedis } from "@/helpers/redis";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { pusherServer } from "@/lib/pusher";
+import { toPusherKey } from "@/lib/utils";
 import { addFriendValidator } from "@/lib/validations/add-friend";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
@@ -66,8 +68,22 @@ export async function POST(req: Request) {
       return new Response("Already friends with this user", { status: 400 });
     }
 
-    // nghĩa là adding một giá trị của friends vào list trong redis
-    db.sadd(`user:${idToAdd}:incoming_friend_requests`, session.user.id);
+    // function notify all clients that this person has been added.
+    // toPusherKey("user:${idToAdd}:incoming_friend_requests") chính là 1 channel chúng ta sẽ gửi message (cái mà chúng ta đã subcribe phía front end bên file FriendRequest phần useEffect)
+    // biến tiếp thao cái channel phải giống như biến đầu tiên của hàm bind bên front end (dòng 43)
+    // biến cúi cùng là data that we want to send along in this request. (chuyển data này lên functionRequestHandler trong file Friendrequest)
+    console.log("trigger pusher");
+    await pusherServer.trigger(
+      toPusherKey(`user:${idToAdd}:incoming_friend_requests`),
+      "incoming_friend_requests",
+      {
+        senderId: session.user.id,
+        senderEmail: session.user.email,
+      }
+    );
+
+    // nghĩa là adding một id của friends vào trong redis
+    await db.sadd(`user:${idToAdd}:incoming_friend_requests`, session.user.id);
     return new Response("OK");
   } catch (error) {
     if (error instanceof z.ZodError) {

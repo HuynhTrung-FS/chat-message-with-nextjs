@@ -1,9 +1,10 @@
 "use client";
-import { cn } from "@/lib/utils";
+import { cn, toPusherKey } from "@/lib/utils";
 import { Message } from "@/lib/validations/message";
 import { format } from "date-fns";
-import { FC, useRef, useState } from "react";
+import { FC, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { pusherClient } from "@/lib/pusher";
 
 interface MessagesProps {
   // Message là tới từ cái validator.
@@ -11,6 +12,7 @@ interface MessagesProps {
   sessionId: string;
   sessionImg: string | null | undefined;
   chatPartner: UserA;
+  chatId: string;
 }
 
 const Messages: FC<MessagesProps> = ({
@@ -18,6 +20,7 @@ const Messages: FC<MessagesProps> = ({
   sessionId,
   sessionImg,
   chatPartner,
+  chatId,
 }) => {
   // sử dụng useState bên dưới mục đích: khi user send a message chúng ta có thể put nó vào state để show trực tiếp đến user thay vì chúng ta phải refresh page.
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -25,6 +28,23 @@ const Messages: FC<MessagesProps> = ({
   const formatTimestamp = (timestamp: number) => {
     return format(timestamp, "HH:mm");
   };
+
+  useEffect(() => {
+    pusherClient.subscribe(toPusherKey(`chat:${chatId}`));
+
+    const messageHandler = (message: Message) => {
+      // tại sao lại set biến message trước: tại vì trước đó mình làm set CSS là flex-col reverse
+      // => nên là cần phải bỏ message trước để khi reverse lại tin nhắn mới nhất sẽ nằm phía dưới
+      setMessages((prev) => [message, ...prev]);
+    };
+
+    pusherClient.bind("incoming-message", messageHandler);
+
+    return () => {
+      pusherClient.unsubscribe(toPusherKey(`chat:${chatId}`));
+      pusherClient.unbind("incoming-message", messageHandler);
+    };
+  }, [sessionId, chatId]);
   return (
     // flex-col-reverse là dùng để display các message từ muộn nhất đến mới nhất (sẽ turn everything upside down)
     <div
