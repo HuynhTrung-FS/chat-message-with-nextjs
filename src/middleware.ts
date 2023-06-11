@@ -12,7 +12,7 @@ export default withAuth(
     // TÌM HIỂU SAU: logic của func getToken(): nó sẽ auto sử dụng next auth secret bên file .env để decrypt hoặc JWT và sẽ trả về kết quả là một token
 
     // lấy token của session trong cookies sau khi đăng nhập vào.
-    const isAuth = req.cookies.get("next-auth.session-token")?.value || null;
+    const isAuth = await getToken({ req });
     console.log("isAuth: ", isAuth);
     const isLoginPage = pathname.startsWith("/login");
 
