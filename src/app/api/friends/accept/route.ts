@@ -44,6 +44,15 @@ export async function POST(req: Request) {
       return new Response("No friend request", { status: 400 });
     }
 
+    // xử lý event khi chúng ta accept friends thành công thì chỉ mục nhỏ thông báo sẽ biến mất (mà ko cần chúng ta phải refresh page)
+    const [userRaw, friendRaw] = (await Promise.all([
+      fetchRedis("get", `user:${session.user.id}`),
+      fetchRedis("get", `user:${idToAdd}`),
+    ])) as [string, string];
+
+    const user = JSON.parse(userRaw) as UserA;
+    const friend = JSON.parse(friendRaw) as UserA;
+
     // notify added user
 
     // sự kiện này dùng để khi đối phương accept thì đối phương sẽ hiện trên khung chat của chúng ta
@@ -54,24 +63,29 @@ export async function POST(req: Request) {
     // you could also do this with state right so it would be easy thing to just add the actual friend because you can get the data
     // because we have the ID that we want to add so it would be easy to actually fetch the friend data from the database pass it along
     // and then add that friend to State instead of refreshing (ex: newFriendHandler) the router.
-    //
-    pusherServer.trigger(
-      toPusherKey(`user:${idToAdd}:friends`),
-      "new_friend",
-      {}
-    );
+    // dùng await Promise.all để cho các promise thực hiện xong hết.
+    await Promise.all([
+      pusherServer.trigger(
+        toPusherKey(`user:${idToAdd}:friends`),
+        "new_friend",
+        user
+      ),
+      pusherServer.trigger(
+        toPusherKey(`user:${session.user.id}:friends`),
+        "new_friend",
+        friend
+      ),
+      // tiến hành add person mình gõ vào list friends.
+      // ở đây chúng ta ko cần phải fetch vì chúng ta thực hiện phương thức post hoặc chỉnh sửa data trong redis và nó sẽ ko cần cache trong nextjs
+      // => chúng ta ko cần wierd caching behavior
+      db.sadd(`user:${session.user.id}:friends`, idToAdd),
+      db.sadd(`user:${idToAdd}:friends`, session.user.id),
+      // chúng ta muốn show các outbound from request (các request từ những người mình có thể quen).
+      // await db.srem(`user:${idToAdd}:outbound_friend_requests`, session.user.id);
 
-    // tiến hành add person mình gõ vào list friends.
-    // ở đây chúng ta ko cần phải fetch vì chúng ta thực hiện phương thức post hoặc chỉnh sửa data trong redis và nó sẽ ko cần cache trong nextjs
-    // => chúng ta ko cần wierd caching behavior
-    await db.sadd(`user:${session.user.id}:friends`, idToAdd);
-    await db.sadd(`user:${idToAdd}:friends`, session.user.id);
-
-    // chúng ta muốn show các outbound from request (các request từ những người mình có thể quen).
-    // await db.srem(`user:${idToAdd}:outbound_friend_requests`, session.user.id);
-
-    // srem dùng để remove cái incoming friend đó đi vì ở trên mình đã add thành công rồi
-    await db.srem(`user:${session.user.id}:incoming_friend_requests`, idToAdd);
+      // srem dùng để remove cái incoming friend đó đi vì ở trên mình đã add thành công rồi
+      db.srem(`user:${session.user.id}:incoming_friend_requests`, idToAdd),
+    ]);
 
     return new Response("OK");
   } catch (error) {

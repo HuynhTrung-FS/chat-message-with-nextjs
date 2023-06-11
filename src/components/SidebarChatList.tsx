@@ -26,6 +26,7 @@ const SidebarChatList: FC<SidebarChatListProps> = ({ friends, sessionId }) => {
   // pathname là một relative path (ex: /dashboard/add chứ ko phải là quyên cụm http://localhost:3000)
   const pathname = usePathname();
   const [unseenMessages, setUnseenMessages] = useState<Message[]>([]);
+  const [activeChats, setActiveChats] = useState<UserA[]>(friends);
 
   useEffect(() => {
     // tiến hành tạo một event để listen khi có một message đưa đến.
@@ -34,8 +35,9 @@ const SidebarChatList: FC<SidebarChatListProps> = ({ friends, sessionId }) => {
     // logic: chúng ta sẽ tiến hành subcribe to anyone adding this person as a new friend
     pusherClient.subscribe(toPusherKey(`user:${sessionId}:friends`));
 
-    const newFriendHandler = () => {
-      router.refresh();
+    const newFriendHandler = (newFriend: UserA) => {
+      console.log("received new user", newFriend);
+      setActiveChats((prev) => [...prev, newFriend]);
     };
     const chatHandler = (message: ExtendedMessage) => {
       // to display message from server. First we want to determine if the user should even be notified
@@ -93,7 +95,7 @@ const SidebarChatList: FC<SidebarChatListProps> = ({ friends, sessionId }) => {
   return (
     <ul role="list" className="max-h-[25rem] overflow-y-auto -mx-2 space-y-1">
       {/* chúng ta muốn friends luôn được sort */}
-      {friends.sort().map((friend) => {
+      {activeChats.sort().map((friend) => {
         const unseenMessagesCount = unseenMessages.filter((unseenMsg) => {
           return unseenMsg.senderId === friend.id;
         }).length;
