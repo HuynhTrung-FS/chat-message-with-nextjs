@@ -1,4 +1,3 @@
-"use client";
 import ShopNav from "@/components/header/ShopNav";
 
 export const metadata = {

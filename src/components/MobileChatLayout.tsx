@@ -11,9 +11,10 @@ import FriendRequestSidebarOption from "./FriendRequestSidebarOption";
 import SidebarChatList from "./SidebarChatList";
 import { Session } from "next-auth";
 import { usePathname } from "next/navigation";
+import { SidebarOption } from "@/types/typings";
 
 interface MobileChatLayoutProps {
-  friends: User[];
+  friends: UserA[];
   // session đã có sẵn trên server
   session: Session;
   sidebarOptions: SidebarOption[];

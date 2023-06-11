@@ -1,4 +1,4 @@
-import { Icon } from "lucide-react";
+import { Icon } from "@/components/Icons";
 
 interface SidebarOption {
   id: number;
