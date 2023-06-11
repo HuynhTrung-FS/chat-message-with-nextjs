@@ -30,7 +30,7 @@ export const authOptions: NextAuthOptions = {
     // define custom page nào là cho phép quyền auth.
     signIn: "/login",
   },
-  secret: process.env.JWT_SECRET,
+  // secret: process.env.JWT_SECRET,
   // các provider này là để xác định các kênh social media nào được quyền.
   providers: [
     GoogleProvider({
