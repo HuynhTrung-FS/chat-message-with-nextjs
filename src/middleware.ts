@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // withAuth sẽ nhận vào 1 cái callback
 export default withAuth(
-  async function middleware(req) {
+  async function middleware(req: any) {
     // console.log(req.cookies);
     const pathname = req.nextUrl.pathname;
     // Manage route protection
